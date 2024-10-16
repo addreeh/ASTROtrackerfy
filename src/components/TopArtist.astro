@@ -1,0 +1,26 @@
+---
+import Image from 'astro/components/Image.astro'
+
+const { artist } = Astro.props
+---
+
+<a href={`/artist/${artist.id}`} class='block'>
+	<section
+		class='relative z-20 flex h-28 w-full cursor-pointer flex-row items-center justify-between rounded-3xl bg-[#42C83C] px-7 text-xs transition-transform hover:scale-105'
+	>
+		<article class='font-bold text-[#FBFBFB]'>
+			<p class='text-[0.625rem]'>Top Artist</p>
+			<p class='text-xl'>{artist.name}</p>
+			<p class='text-xs'>
+				{artist.percentage.toFixed(2)}% | {artist.contentCount} songs
+			</p>
+		</article>
+			<Image
+				src='/duki.png'
+				alt='Top Artist'
+				width={200}
+				height={100}
+				class="absolute right-10 bottom-0"
+				/>
+	</section>
+</a>

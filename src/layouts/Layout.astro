@@ -1,0 +1,35 @@
+---
+import { getPlaylistInfo } from '../lib/spotify';
+import { ViewTransitions } from 'astro:transitions';
+
+// if (!playlistInfo) await getPlaylistInfo('0UNaot0tAdf4Oqa8L1hK88')
+// console.log(playlistInfo)
+
+interface Props {
+	title: string
+}
+
+const { title } = Astro.props
+---
+
+<!doctype html>
+<html lang='en'>
+	<head>
+		<meta charset='UTF-8' />
+		<meta name='description' content='Astro description' />
+		<meta name='viewport' content='width=device-width' />
+		<link rel='icon' type='image/svg+xml' href='/favicon.svg' />
+		<meta name='generator' content={Astro.generator} />
+		<title>{title}</title>
+		<ViewTransitions />
+	</head>
+	<body class="bg-[#1C1B1B]">
+		<slot />
+	</body>
+</html>
+<style is:global>
+	@font-face {
+		font-family: 'Satoshi';
+		src: url('/fonts/satoshi.woff2') format('woff2');
+	}
+</style>

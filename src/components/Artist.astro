@@ -1,0 +1,41 @@
+---
+import { Image } from "astro:assets";
+const { artist } = Astro.props;
+---
+
+<a href={`/artist/${artist.id}`} class='block' data-artist={JSON.stringify(artist)}>
+  <div class='flex flex-row items-center justify-between text-[#E1E1E1]'>
+    <div class='flex flex-row items-center gap-6'>
+      <Image
+        src={artist.imageUrl || '/billie.png'}
+        alt='Artist'
+        width={40}
+        height={40}
+        class='rounded-full object-cover aspect-[1/1]'
+      />
+      <div class='flex flex-col gap-1'>
+        <p class='text-base font-bold'>{artist.name}</p>
+        <p class='text-sm'>{artist.contentCount} songs</p>
+      </div>
+    </div>
+    <div class='flex flex-row items-center gap-12'>
+      <p class='text-sm text-[#D6D6D6]'>
+        {artist.percentage.toFixed(2)}%
+      </p>
+      <div class='flex h-7 w-7 items-center justify-center rounded-full bg-[#2C2C2C] p-1'>
+        i
+      </div>
+    </div>
+  </div>
+</a>
+
+<script>
+  // Este script se ejecutará en el navegador
+  document.querySelectorAll('a[data-artist]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const artistData = JSON.parse(link.getAttribute('data-artist'));
+      window.location.href = `/artist/${artistData.id}?data=${encodeURIComponent(JSON.stringify(artistData))}`;
+    });
+  });
+</script>

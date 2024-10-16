@@ -1,0 +1,94 @@
+---
+import { Image } from 'astro:assets'
+import Layout from '../../layouts/Layout.astro'
+import { playlist } from '../../stores/playlist'
+import type { ArtistInfo, PlaylistInfo } from '@/env'
+
+const { id } = Astro.params
+const playlistInfo = playlist.get() as PlaylistInfo
+
+let artist
+if (playlistInfo) artist = playlistInfo.artists.find(
+	(artist: ArtistInfo) => artist.id === id,
+)
+else return Astro.redirect('/')
+// console.log(artist.content)
+---
+
+<Layout title='Artist Page'>
+	<div class='mx-auto max-w-80'>
+		<Fragment class='max-w-80 flex justify-center items-center mx-auto'>
+			<header class='flex flex-col gap-4 justify-items-center'>
+				<Image
+					src={artist?.imageUrl || '/billie.png'}
+					alt={artist?.name || 'Default Artist'}
+					width={200}
+					height={200}
+					loading={'eager'}
+					class='w-full h-72 mx-auto flex items-center justify-center rounded-b-2xl object-cover object-top'
+				/>
+				<section class='flex flex-col items-center justify-center'>
+					<h1 class='text-xl font-bold text-[#E3E3E3]'>{artist?.name}</h1>
+					<article class='flex flex-row items-center justify-between gap-20'>
+						<div
+							class='flex flex-col items-center justify-center text-sm text-[#D3D3D3]'
+						>
+							<p>{artist?.contentCount} songs</p>
+							<p>{artist?.percentage.toFixed(2)}%</p>
+						</div>
+						<div
+							class='flex flex-col items-center justify-center text-sm text-[#D3D3D3]'
+						>
+							<p class='text-xs'>Followers</p>
+							<p class='font-bold'>
+								{artist?.followers?.toString()}
+							</p>
+						</div>
+					</article>
+				</section>
+				<main class='px-4'>
+					<h2 class='text-base font-bold text-[#DDD]'>Songs</h2>
+					<section class='flex flex-col gap-4'>
+						{
+							artist?.content.map(song => (
+								<div class='flex flex-row justify-between'>
+									<Image
+										src={song.imageUrl}
+										alt={song.name}
+										width={40}
+										height={40}
+										loading={'eager'}
+										class='rounded-xl'
+									/>
+									<div class='text-[#D6D6D6]'>
+										<p class='text-base font-bold'>{song.name}</p>
+										<p class='text-xs'>
+											{song.artists?.toString().split(',').join(', ')}
+										</p>
+									</div>
+								</div>
+							))
+						}
+					</section>
+				</main>
+			</header>
+		</Fragment>
+	</div>
+</Layout>
+
+<!-- <script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const artistData = JSON.parse(decodeURIComponent(urlParams.get('data')));
+
+  if (artistData) {
+    const artistInfoDiv = document.getElementById('artist-info');
+    artistInfoDiv.innerHTML = `
+      <h1>${artistData.name}</h1>
+      <img src="${artistData.imageUrl || '/billie.png'}" alt="${artistData.name}" width="200" height="200">
+      <p>Songs: ${artistData.contentCount}</p>
+      <p>Percentage: ${artistData.percentage.toFixed(2)}%</p>
+    `;
+  } else {
+    console.error('No artist data found');
+  }
+</script> -->

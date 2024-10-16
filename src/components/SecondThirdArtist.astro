@@ -1,0 +1,89 @@
+---
+import { Image } from 'astro:assets'
+
+const { artist } = Astro.props
+---
+
+<a
+	href={`/artist/${artist.id}`}
+	class='block'
+	data-artist={JSON.stringify(artist)}
+>
+	<article class='flex cursor-pointer flex-col gap-3'>
+		<div class='poster relative aspect-[145/185] w-full min-w-36'>
+			<Image
+				src={artist.imageUrl || '/billie.png'}
+				alt={`Imagen de ${artist.name}`}
+				width={145}
+				height={185}
+				class='absolute inset-0 h-full w-full rounded-[30px] object-cover'
+			/>
+			<div
+				class='info-icon absolute bottom-4 right-4 flex h-7 w-7 items-center justify-center rounded-full bg-[#2C2C2C] p-1'
+			>
+				i
+			</div>
+		</div>
+		<div class='flex flex-col gap-1 text-[#E1E1E1]'>
+			<p class='text-base font-bold'>{artist.name}</p>
+			<p class='text-sm'>
+				{parseFloat(artist.percentage).toFixed(2)}% | {artist.contentCount} songs
+			</p>
+		</div>
+	</article>
+</a>
+
+<style>
+  .poster {
+    transition: box-shadow .1s, transform .1s;
+    background-size: cover;
+  }
+
+  .poster:hover {
+    box-shadow: 0 0 50px rgba(0, 0, 0, 1);
+  }
+
+  .info-icon {
+    transition: opacity 0.3s ease;
+  }
+
+  /* Hacer que el div del "i" desaparezca cuando se hace hover en la imagen */
+  .poster:hover + .info-icon {
+    opacity: 0;
+  }
+</style>
+<script>
+  const elements = document.querySelectorAll('.poster') as NodeListOf<HTMLElement>
+
+  elements.forEach(el => {
+    const image = el?.getAttribute('src')
+    el.style.background = `url(${image}) no-repeat center`
+    const height = el.clientHeight
+    const width = el.clientWidth
+
+    el.addEventListener('mousemove', (e) => {
+      const {layerX, layerY} = e
+
+      const yRotation = ((layerX - width / 2) / width) * 20
+      const xRotation = ((layerY - height / 2) / height) * 20
+
+      const string = `
+        perspective(500px)
+        scale(1.1)
+        rotateX(${xRotation}deg)
+        rotateY(${yRotation}deg)
+      `
+
+      el.style.transform = string
+    })
+
+    el?.addEventListener('mouseout', () => {
+      el.style.transform = `
+        perspective(500px)
+        scale(1)
+        rotateX(0deg)
+        rotateY(0deg)
+      `
+    })
+  })
+</script>

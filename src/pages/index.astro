@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { Image } from 'astro:assets'
+import { getPlaylistInfo } from '../lib/spotify'
+import PlaylistViewer from '../components/PlaylistViewer.astro'
+
+// const DEFAULT_PLAYLIST_ID = '0UNaot0tAdf4Oqa8L1hK88'
+// import playlistInfo from '../playlistInfo.json'
+let playlistInfo
+playlistInfo = await getPlaylistInfo('0UNaot0tAdf4Oqa8L1hK88')
+import {playlist} from '../stores/playlist'
+playlist.set(playlistInfo)
+---
+
+<Layout title='Welcome to Astro.'>
+	<header
+		class='relative z-10 mx-auto flex max-w-md items-center justify-center bg-[#1C1B1B] pt-7'
+	>
+		<Image src='/spotify-logo.png' alt='Spotify Logo' width={100} height={30} />
+	</header>
+	<PlaylistViewer playlistInfo={playlistInfo} />
+</Layout>

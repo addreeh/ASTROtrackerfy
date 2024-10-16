@@ -1,0 +1,33 @@
+---
+import TopArtist from '../components/TopArtist.astro'
+import SecondThirdArtist from './SecondThirdArtist.astro'
+import Artist from './Artist.astro'
+import type { ArtistInfo } from '@/env'
+// import Vibrant from 'node-vibrant'
+const { playlistInfo } = Astro.props
+---
+
+<main
+	class='container mx-auto flex h-full min-h-screen max-w-md flex-col gap-9 p-7'
+>
+	<TopArtist artist={playlistInfo.artists[0]} />
+	<section class='flex flex-row justify-around'>
+		<SecondThirdArtist artist={playlistInfo.artists[1]} />
+		<SecondThirdArtist artist={playlistInfo.artists[2]} />
+	</section>
+	<section class='flex flex-col gap-6'>
+		<div class='flex flex-row items-center justify-between px-[0.375rem]'>
+			<h1 class='text-xl font-bold text-[#DBDBDB]'>Other artists</h1>
+			<small class='text-xs text-[#C6C6C6]'>Sort Ascending</small>
+		</div>
+		<article class='flex flex-col gap-5'>
+			{
+				playlistInfo.artists
+					.slice(3)
+					.map((artist: ArtistInfo) => (
+						<Artist artist={artist} />
+					))
+			}
+		</article>
+	</section>
+</main>
