@@ -9,10 +9,9 @@ const PLAYLIST_ID = import.meta.env.PLAYLIST_ID || '0UNaot0tAdf4Oqa8L1hK88';
 const CACHE_TIME = 60 * 60;
 
 let playlistInfo;
-let error;
 
 try {
-  const cached = await Astro.request.headers.get('x-playlist-cache');
+  const cached = Astro.request.headers.get('x-playlist-cache');
   if (cached) {
     console.log('Using cached playlist', cached);
     playlistInfo = JSON.parse(cached);
@@ -24,7 +23,6 @@ try {
   }
 } catch (e: any) {
   console.error('Error fetching playlist:', e);
-  error = e.message;
 }
 
 if (playlistInfo) {
