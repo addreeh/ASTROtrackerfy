@@ -1,16 +1,19 @@
+// spotify.ts
 import type { ArtistInfo, ContentInfo, PlaylistInfo } from '@/env'
 import SpotifyWebApi from 'spotify-web-api-node'
 
-const createSpotifyApi = (): SpotifyWebApi => new SpotifyWebApi({
+// Crear una instancia por request para evitar problemas de concurrencia en SSR
+const createSpotifyApi = () => new SpotifyWebApi({
   clientId: import.meta.env.SPOTIFY_CLIENT_ID,
   clientSecret: import.meta.env.SPOTIFY_CLIENT_SECRET
 })
 
+// Caché en memoria para tokens (opcional, dependiendo de tus necesidades)
 let tokenCache: { token: string, expires: number } | null = null
 
 async function getValidToken (spotifyApi: SpotifyWebApi): Promise<string> {
+  // Si estamos en desarrollo, no usar caché para evitar problemas con HMR
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { body: { access_token } } = await spotifyApi.clientCredentialsGrant()
     return access_token
   }
@@ -20,11 +23,10 @@ async function getValidToken (spotifyApi: SpotifyWebApi): Promise<string> {
     return tokenCache.token
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { body: { access_token, expires_in } } = await spotifyApi.clientCredentialsGrant()
   tokenCache = {
     token: access_token,
-    expires: now + (expires_in * 1000) - 60000
+    expires: now + (expires_in * 1000) - 60000 // 1 minuto antes para margen de seguridad
   }
   return access_token
 }
@@ -40,6 +42,7 @@ async function getAllPlaylistItems (
 
   if (numberOfCalls <= 0) return firstBatch.body.items
 
+  // Usar Promise.allSettled para manejar fallos parciales
   const promises = Array.from({ length: numberOfCalls }, async (_, i) =>
     await spotifyApi.getPlaylistTracks(playlistId, {
       offset: (i + 1) * limit,
@@ -65,24 +68,28 @@ async function getArtistImagesAndFollowers (
   const artistInfoMap = new Map<string, { imageUrl: string, followers: number }>()
   const chunkSize = 50
 
+  // Filtrar IDs inválidos
   const validIds = artistIds.filter(id => /^[a-zA-Z0-9]{22}$/.test(id))
   const invalidIds = artistIds.filter(id => !validIds.includes(id))
 
+  // Manejar IDs inválidos
   invalidIds.forEach(id => {
     artistInfoMap.set(id, { imageUrl: '', followers: 0 })
     console.warn(`ID inválido encontrado: ${id}`)
   })
 
+  // Dividir en chunks
   const chunks = Array.from(
     { length: Math.ceil(validIds.length / chunkSize) },
     (_, i) => validIds.slice(i * chunkSize, (i + 1) * chunkSize)
   )
 
+  // Procesar chunks con retry logic
   const processChunk = async (chunk: string[]): Promise<void> => {
     try {
       const response = await spotifyApi.getArtists(chunk)
       response.body.artists.forEach(artist => {
-        if (artist.id != null) {
+        if (artist?.id) {
           artistInfoMap.set(artist.id, {
             imageUrl: artist.images?.[0]?.url ?? '',
             followers: artist.followers?.total ?? 0
@@ -95,12 +102,13 @@ async function getArtistImagesAndFollowers (
         await new Promise(resolve => setTimeout(resolve, retryAfter))
         await processChunk(chunk)
       } else {
+        // Fallback a procesamiento individual
         await Promise.allSettled(
           chunk.map(async (artistId) => {
             try {
               const response = await spotifyApi.getArtists([artistId])
               const artist = response.body.artists[0]
-              if (artist.id != null) {
+              if (artist?.id) {
                 artistInfoMap.set(artist.id, {
                   imageUrl: artist.images?.[0]?.url ?? '',
                   followers: artist.followers?.total ?? 0
@@ -115,6 +123,7 @@ async function getArtistImagesAndFollowers (
     }
   }
 
+  // Procesar todos los chunks con concurrencia limitada
   const concurrencyLimit = import.meta.env.DEV ? 1 : 3
   for (let i = 0; i < chunks.length; i += concurrencyLimit) {
     const currentChunks = chunks.slice(i, i + concurrencyLimit)
@@ -125,17 +134,18 @@ async function getArtistImagesAndFollowers (
 }
 
 export async function getPlaylistInfo (playlistId: string): Promise<PlaylistInfo> {
-  console.log('FETCHING PLAYLIST INFO', playlistId)
   const spotifyApi = createSpotifyApi()
   const token = await getValidToken(spotifyApi)
   spotifyApi.setAccessToken(token)
 
   try {
+    // Ejecutar requests principales en paralelo
     const [playlist, items] = await Promise.all([
       spotifyApi.getPlaylist(playlistId),
       getAllPlaylistItems(spotifyApi, playlistId)
     ])
 
+    // Procesar items eficientemente
     const artistMap = new Map<string, ArtistInfo>()
     const contentBreakdown = { tracks: 0, episodes: 0, other: 0 }
     const totalItems = items.length
@@ -150,19 +160,18 @@ export async function getPlaylistInfo (playlistId: string): Promise<PlaylistInfo
           ? 'episode'
           : 'other'
 
-      contentBreakdown[contentType as keyof typeof contentBreakdown]++
+      contentBreakdown[contentType]++
 
       const contentInfo: ContentInfo = {
         name: track.name ?? 'Unknown Content',
         type: contentType,
         artists: track.artists?.map(artist => artist.name) ?? [],
         imageUrl: track.album?.images?.[0]?.url ?? '',
-        previewUrl: track.preview_url ?? '',
         percentage: (1 / totalItems) * 100
       }
 
       for (const artist of (track.artists ?? [])) {
-        if (artist.id === null) continue
+        if (!artist?.id) continue
 
         const existingArtist = artistMap.get(artist.id) ?? {
           name: artist.name ?? 'Unknown Artist',
@@ -178,11 +187,13 @@ export async function getPlaylistInfo (playlistId: string): Promise<PlaylistInfo
       }
     }
 
+    // Obtener información de artistas
     const artistInfoMap = await getArtistImagesAndFollowers(
       spotifyApi,
       Array.from(artistMap.keys())
     )
 
+    // Preparar resultado final
     const artists = Array.from(artistMap.values())
       .map(artist => ({
         ...artist,

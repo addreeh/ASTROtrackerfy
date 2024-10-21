@@ -1,0 +1,127 @@
+---
+import { Image } from 'astro:assets'
+import Layout from '@/layouts/Layout.astro'
+import { playlist } from '@/stores/playlist'
+import type { ArtistInfo, PlaylistInfo } from '@/env'
+import PlaySong from '@/components/PlaySong'
+import Vibrant from 'node-vibrant'
+
+const { name } = Astro.params
+const playlistInfo = playlist.get() as PlaylistInfo
+
+let artist
+if (playlistInfo)
+	artist = playlistInfo.artists.find(
+		(artist: ArtistInfo) => artist.name.toLowerCase() === name,
+	)
+else return Astro.redirect('/')
+
+let vibrantColor
+if (artist && artist.imageUrl) {
+	const vibrant = new Vibrant(artist.imageUrl)
+	vibrantColor = await vibrant.getPalette()
+		.then((palette) => palette.Vibrant?.hex)
+}
+console.log("V", vibrantColor)
+---
+
+<Layout title={artist?.name || 'Artist Page'}>
+	<div class='flex h-screen flex-col gap-4'>
+		<header
+			class='flex flex-col justify-items-center gap-4 rounded-b-[3.75rem] pb-4'
+      style={{ backgroundColor: vibrantColor }}
+		>
+			<Image
+				src={artist?.imageUrl || '/billie.png'}
+				alt={artist?.name || 'Default Artist'}
+				width={200}
+				height={200}
+				loading={'eager'}
+				class='mx-auto flex h-72 w-full items-center justify-center rounded-b-[3.75rem] object-cover'
+				transition:name={`artist-image-${artist?.name.toLowerCase()}`}
+			/>
+			<section class='flex flex-col items-center justify-center'>
+				<h1
+					class='text-xl font-bold text-[#E3E3E3]'
+					transition:name={`artist-name-${artist?.name.toLowerCase()}`}
+				>
+					{artist?.name}
+				</h1>
+				<article class='flex flex-row items-center justify-between gap-20'>
+					<div
+						class='flex flex-col items-center justify-center text-sm text-[#D3D3D3]'
+						transition:name={`artist-stats-${artist?.name.toLowerCase()}`}
+					>
+						<p>{artist?.contentCount} songs</p>
+						<p>{artist?.percentage.toFixed(2)}%</p>
+					</div>
+					<div
+						class='flex flex-col items-center justify-center text-sm text-[#D3D3D3]'
+					>
+						<p class='text-xs'>Followers</p>
+						<p class='font-bold'>
+							{artist?.followers?.toString()}
+						</p>
+					</div>
+				</article>
+			</section>
+		</header>
+		<main class='flex flex-grow flex-col gap-4 overflow-hidden'>
+			<h2 class='px-4 text-base font-bold text-[#D6D6D6]'>Songs</h2>
+			<section
+				id='songs'
+				class='flex flex-col gap-3 overflow-y-auto px-4'
+			>
+				{
+					artist?.content.map((song, index) => (
+						<div
+							class='flex cursor-pointer flex-row items-center justify-between rounded-xl py-1 transition-all duration-200 hover:scale-105'
+						>
+							<div class='flex flex-row gap-5'>
+								<Image
+									src={song.imageUrl}
+									alt={song.name}
+									width={58}
+									height={56}
+									loading={'lazy'}
+									class='rounded-xl'
+								/>
+
+								<div class='flex flex-col justify-center gap-1 text-[#E3E3E3]'>
+									<p class='max-w-44 truncate text-ellipsis text-base font-bold'>
+										{song.name}
+									</p>
+									<p class='max-w-44 truncate text-ellipsis text-xs'>
+										{song.artists?.toString().split(',').join(', ')}
+									</p>
+								</div>
+							</div>
+							{song.previewUrl && (
+								<PlaySong
+									previewUrl={song.previewUrl}
+									client:load
+								/>
+							)}
+						</div>
+					))
+				}
+			</section>
+		</main>
+	</div>
+</Layout>
+
+<!-- <style>
+    .flex.cursor-pointer:hover {
+        box-shadow: 0 0 15px var(--vibrant-color);
+    }
+</style> -->
+<style>
+	#songs::-webkit-scrollbar {
+		display: none;
+	}
+
+	#songs {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+</style>

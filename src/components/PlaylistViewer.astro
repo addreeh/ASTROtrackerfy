@@ -1,5 +1,5 @@
 ---
-import TopArtist from '../components/TopArtist.astro'
+import TopArtist from '@/components/TopArtist.astro'
 import SecondThirdArtist from './SecondThirdArtist.astro'
 import Artist from './Artist.astro'
 import type { ArtistInfo } from '@/env'
@@ -12,10 +12,19 @@ const { playlistInfo } = Astro.props
 >
 	<TopArtist artist={playlistInfo.artists[0]} />
 	<section class='flex flex-row justify-around'>
-		<SecondThirdArtist artist={playlistInfo.artists[1]} />
-		<SecondThirdArtist artist={playlistInfo.artists[2]} />
+		<SecondThirdArtist
+			artist={playlistInfo.artists[1]}
+			number={'Second'}
+		/>
+		<SecondThirdArtist
+			artist={playlistInfo.artists[2]}
+			number={'Third'}
+		/>
 	</section>
-	<section class='flex flex-col gap-6'>
+	<section
+		class='flex h-full flex-col gap-6 overflow-y-auto'
+		id='artists'
+	>
 		<div class='flex flex-row items-center justify-between px-[0.375rem]'>
 			<h1 class='text-xl font-bold text-[#DBDBDB]'>Other artists</h1>
 			<small class='text-xs text-[#C6C6C6]'>Sort Ascending</small>
@@ -24,10 +33,19 @@ const { playlistInfo } = Astro.props
 			{
 				playlistInfo.artists
 					.slice(3)
-					.map((artist: ArtistInfo) => (
-						<Artist artist={artist} />
-					))
+					.map((artist: ArtistInfo) => <Artist artist={artist} />)
 			}
 		</article>
 	</section>
 </main>
+
+<style>
+	#artists::-webkit-scrollbar {
+		display: none;
+	}
+
+	#artists {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+</style>

@@ -5,6 +5,7 @@ export interface ContentInfo {
   type: 'track' | 'episode' | 'other'
   artists?: string[]
   imageUrl: string
+  previewUrl?: string
   percentage: number
 }
 

@@ -1,0 +1,29 @@
+---
+import { Image } from 'astro:assets'
+import { BackgroundRemovalService } from '@/services/bgRemoval'
+
+interface Props {
+	artist: {
+		name: string
+		imageUrl: string
+	}
+	className?: string
+}
+
+const { artist, className = '' } = Astro.props
+
+// const processedImageUrl = artist.imageUrl
+
+const backgroundService = BackgroundRemovalService.getInstance();
+const processedImageUrl = await backgroundService.removeBackground(artist.imageUrl);
+---
+
+<Image
+	src={processedImageUrl}
+	alt={`Top Artist: ${artist.name}`}
+	width={200}
+	height={150}
+	loading={'eager'}
+	class={`absolute bottom-0 right-5 h-[11rem] ${className}`}
+	transition:name={`artist-image-${artist.name.toLowerCase()}`}
+/>

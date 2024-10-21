@@ -1,9 +1,5 @@
 ---
-import { getPlaylistInfo } from '../lib/spotify';
-import { ViewTransitions } from 'astro:transitions';
-
-// if (!playlistInfo) await getPlaylistInfo('0UNaot0tAdf4Oqa8L1hK88')
-// console.log(playlistInfo)
+import { ViewTransitions } from 'astro:transitions'
 
 interface Props {
 	title: string
@@ -16,14 +12,29 @@ const { title } = Astro.props
 <html lang='en'>
 	<head>
 		<meta charset='UTF-8' />
-		<meta name='description' content='Astro description' />
-		<meta name='viewport' content='width=device-width' />
-		<link rel='icon' type='image/svg+xml' href='/favicon.svg' />
-		<meta name='generator' content={Astro.generator} />
+		<meta
+			name='description'
+			content='Astro description'
+		/>
+		<meta
+			name='viewport'
+			content='width=device-width'
+		/>
+		<link
+			rel='icon'
+			type='image/svg+xml'
+			href='/favicon.svg'
+		/>
+		<meta
+			name='generator'
+			content={Astro.generator}
+		/>
 		<title>{title}</title>
 		<ViewTransitions />
 	</head>
-	<body class="bg-[#1C1B1B]">
+	<body
+		class='mx-auto h-screen max-h-screen min-h-screen max-w-96 overflow-hidden bg-[#1C1B1B]'
+	>
 		<slot />
 	</body>
 </html>
@@ -31,5 +42,78 @@ const { title } = Astro.props
 	@font-face {
 		font-family: 'Satoshi';
 		src: url('/fonts/satoshi.woff2') format('woff2');
+	}
+
+	/* Estilo general para todas las transiciones */
+	::view-transition * {
+		animation-duration: 200ms;
+	}
+
+	/* Estilos específicos para cada tipo de transición */
+	[style*="view-transition-name:artist-image-"] {
+		height: 100%;
+		width: 100%;
+		object-fit: cover;
+	}
+
+	[style*="view-transition-name:artist-name-"] {
+		font-weight: bold;
+	}
+
+	[style*="view-transition-name:artist-stats-"] {
+		opacity: 0.9;
+	}
+
+	/* Animar las transiciones */
+	::view-transition-group(*) {
+		animation-duration: 200ms;
+	}
+
+	::view-transition-old(*) {
+		animation: fade-out 200ms ease-in-out forwards;
+	}
+
+	::view-transition-new(*) {
+		animation: fade-in 200ms ease-in-out forwards;
+	}
+
+	@keyframes fade-out {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	/* Ajustar las duraciones específicas si lo deseas */
+	::view-transition-group(artist-image-*),
+	::view-transition-old(artist-image-*),
+	::view-transition-new(artist-image-*) {
+		animation-duration: 200ms;
+		animation-timing-function: ease-in-out;
+	}
+
+	::view-transition-group(artist-name-*),
+	::view-transition-old(artist-name-*),
+	::view-transition-new(artist-name-*) {
+		animation-duration: 200ms;
+		animation-timing-function: ease-in-out;
+	}
+
+	::view-transition-group(artist-stats-*),
+	::view-transition-old(artist-stats-*),
+	::view-transition-new(artist-stats-*) {
+		animation-duration: 200ms;
+		animation-timing-function: ease-in-out;
 	}
 </style>

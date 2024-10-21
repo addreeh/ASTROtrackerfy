@@ -1,4 +1,39 @@
 ---
+import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import PlaylistViewer from '../components/PlaylistViewer.astro';
+import { getPlaylistInfo } from '../lib/spotify';
+
+const PLAYLIST_ID = import.meta.env.PLAYLIST_ID || '0UNaot0tAdf4Oqa8L1hK88';
+
+const CACHE_TIME = 60 * 60;
+
+let playlistInfo;
+let error;
+
+try {
+  const cached = await Astro.request.headers.get('x-playlist-cache');
+  if (cached) {
+    console.log('Using cached playlist', cached);
+    playlistInfo = JSON.parse(cached);
+  } else {
+    playlistInfo = await getPlaylistInfo(PLAYLIST_ID);
+
+    Astro.response.headers.set('Cache-Control', `max-age=${CACHE_TIME}`);
+    Astro.response.headers.set('x-playlist-cache', JSON.stringify(playlistInfo));
+  }
+} catch (e: any) {
+  console.error('Error fetching playlist:', e);
+  error = e.message;
+}
+
+if (playlistInfo) {
+  const { playlist } = await import('@/stores/playlist');
+  playlist.set(playlistInfo);
+}
+---
+
+<!-- ---
 import Layout from '../layouts/Layout.astro'
 import { Image } from 'astro:assets'
 import { getPlaylistInfo } from '../lib/spotify'
@@ -8,15 +43,20 @@ import PlaylistViewer from '../components/PlaylistViewer.astro'
 // import playlistInfo from '../playlistInfo.json'
 let playlistInfo
 playlistInfo = await getPlaylistInfo('0UNaot0tAdf4Oqa8L1hK88')
-import {playlist} from '../stores/playlist'
+import { playlist } from '@/stores/playlist'
 playlist.set(playlistInfo)
----
-
-<Layout title='Welcome to Astro.'>
+--- -->
+<Layout title='Trackerfy'>
 	<header
 		class='relative z-10 mx-auto flex max-w-md items-center justify-center bg-[#1C1B1B] pt-7'
 	>
-		<Image src='/spotify-logo.png' alt='Spotify Logo' width={100} height={30} />
+		<Image
+			src='/spotify-logo.png'
+			alt='Spotify Logo'
+			width={100}
+			height={30}
+			loading={'eager'}
+		/>
 	</header>
 	<PlaylistViewer playlistInfo={playlistInfo} />
 </Layout>
