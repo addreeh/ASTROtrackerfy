@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets'
-import { BackgroundRemovalService } from '@/services/bgRemoval'
+// import { BackgroundRemovalService } from '@/services/bgRemoval'
 
 interface Props {
 	artist: {
@@ -12,10 +12,10 @@ interface Props {
 
 const { artist, className = '' } = Astro.props
 
-// const processedImageUrl = artist.imageUrl
+const processedImageUrl = artist.imageUrl || '';
 
-const backgroundService = BackgroundRemovalService.getInstance();
-const processedImageUrl = await backgroundService.removeBackground(artist.imageUrl);
+// const backgroundService = BackgroundRemovalService.getInstance();
+// const processedImageUrl = await backgroundService.removeBackground(artist.imageUrl);
 ---
 
 <Image
