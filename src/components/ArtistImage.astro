@@ -82,6 +82,7 @@ const processedImageUrl = artist.imageUrl || ''
 		}
 
 		const apiKeys = getApiKeys()
+		console.log('API KEYS', apiKeys)
 		if (!apiKeys.length) return imageUrl
 
 		for (const apiKey of apiKeys) {
@@ -93,6 +94,7 @@ const processedImageUrl = artist.imageUrl || ''
 			}
 		}
 
+		console.log('Image', imageUrl, 'could not be processed')
 		return imageUrl
 	}
 
