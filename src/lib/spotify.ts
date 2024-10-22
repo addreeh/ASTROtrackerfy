@@ -70,7 +70,6 @@ async function getArtistImagesAndFollowers (
 
   invalidIds.forEach(id => {
     artistInfoMap.set(id, { imageUrl: '', followers: 0 })
-    console.warn(`ID inválido encontrado: ${id}`)
   })
 
   const chunks = Array.from(
@@ -125,88 +124,82 @@ async function getArtistImagesAndFollowers (
 }
 
 export async function getPlaylistInfo (playlistId: string): Promise<PlaylistInfo> {
-  console.log('FETCHING PLAYLIST INFO', playlistId)
   const spotifyApi = createSpotifyApi()
   const token = await getValidToken(spotifyApi)
   spotifyApi.setAccessToken(token)
 
-  try {
-    const [playlist, items] = await Promise.all([
-      spotifyApi.getPlaylist(playlistId),
-      getAllPlaylistItems(spotifyApi, playlistId)
-    ])
+  const [playlist, items] = await Promise.all([
+    spotifyApi.getPlaylist(playlistId),
+    getAllPlaylistItems(spotifyApi, playlistId)
+  ])
 
-    const artistMap = new Map<string, ArtistInfo>()
-    const contentBreakdown = { tracks: 0, episodes: 0, other: 0 }
-    const totalItems = items.length
+  const artistMap = new Map<string, ArtistInfo>()
+  const contentBreakdown = { tracks: 0, episodes: 0, other: 0 }
+  const totalItems = items.length
 
-    for (const item of items) {
-      if ((item?.track) == null) continue
+  for (const item of items) {
+    if ((item?.track) == null) continue
 
-      const track = item.track
-      const contentType = track.type === 'track'
-        ? 'track'
-        : track.type === 'episode'
-          ? 'episode'
-          : 'other'
+    const track = item.track
+    const contentType = track.type === 'track'
+      ? 'track'
+      : track.type === 'episode'
+        ? 'episode'
+        : 'other'
 
-      contentBreakdown[contentType as keyof typeof contentBreakdown]++
+    contentBreakdown[contentType as keyof typeof contentBreakdown]++
 
-      const contentInfo: ContentInfo = {
-        name: track.name ?? 'Unknown Content',
-        type: contentType,
-        artists: track.artists?.map(artist => artist.name) ?? [],
-        imageUrl: track.album?.images?.[0]?.url ?? '',
-        previewUrl: track.preview_url ?? '',
-        percentage: (1 / totalItems) * 100
-      }
-
-      for (const artist of (track.artists ?? [])) {
-        if (artist.id === null) continue
-
-        const existingArtist = artistMap.get(artist.id) ?? {
-          name: artist.name ?? 'Unknown Artist',
-          id: artist.id,
-          contentCount: 0,
-          percentage: 0,
-          content: []
-        }
-
-        existingArtist.contentCount++
-        existingArtist.content.push(contentInfo)
-        artistMap.set(artist.id, existingArtist)
-      }
+    const contentInfo: ContentInfo = {
+      name: track.name ?? 'Unknown Content',
+      type: contentType,
+      artists: track.artists?.map(artist => artist.name) ?? [],
+      imageUrl: track.album?.images?.[0]?.url ?? '',
+      previewUrl: track.preview_url ?? '',
+      percentage: (1 / totalItems) * 100
     }
 
-    const artistInfoMap = await getArtistImagesAndFollowers(
-      spotifyApi,
-      Array.from(artistMap.keys())
-    )
+    for (const artist of (track.artists ?? [])) {
+      if (artist.id === null) continue
 
-    const artists = Array.from(artistMap.values())
-      .map(artist => ({
-        ...artist,
-        percentage: (artist.contentCount / totalItems) * 100,
-        imageUrl: artistInfoMap.get(artist.id)?.imageUrl ?? '',
-        followers: artistInfoMap.get(artist.id)?.followers ?? 0
-      }))
-      .sort((a, b) => b.percentage - a.percentage)
+      const existingArtist = artistMap.get(artist.id) ?? {
+        name: artist.name ?? 'Unknown Artist',
+        id: artist.id,
+        contentCount: 0,
+        percentage: 0,
+        content: []
+      }
 
-    return {
-      name: playlist.body.name,
-      description: playlist.body.description ?? '',
-      followers: playlist.body.followers.total,
-      totalItems,
-      artists,
-      image: playlist.body.images[0]?.url ?? '',
-      owner: {
-        name: playlist.body.owner.display_name ?? '',
-        url: playlist.body.owner.external_urls.spotify ?? ''
-      },
-      contentBreakdown
+      existingArtist.contentCount++
+      existingArtist.content.push(contentInfo)
+      artistMap.set(artist.id, existingArtist)
     }
-  } catch (error) {
-    console.error('Error fetching playlist info:', error)
-    throw error
+  }
+
+  const artistInfoMap = await getArtistImagesAndFollowers(
+    spotifyApi,
+    Array.from(artistMap.keys())
+  )
+
+  const artists = Array.from(artistMap.values())
+    .map(artist => ({
+      ...artist,
+      percentage: (artist.contentCount / totalItems) * 100,
+      imageUrl: artistInfoMap.get(artist.id)?.imageUrl ?? '',
+      followers: artistInfoMap.get(artist.id)?.followers ?? 0
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+
+  return {
+    name: playlist.body.name,
+    description: playlist.body.description ?? '',
+    followers: playlist.body.followers.total,
+    totalItems,
+    artists,
+    image: playlist.body.images[0]?.url ?? '',
+    owner: {
+      name: playlist.body.owner.display_name ?? '',
+      url: playlist.body.owner.external_urls.spotify ?? ''
+    },
+    contentBreakdown
   }
 }

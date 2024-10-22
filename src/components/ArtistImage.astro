@@ -38,7 +38,6 @@ const processedImageUrl = artist.imageUrl || ''
 		try {
 			return import.meta.env.PUBLIC_API_BG_KEYS?.split(',') || []
 		} catch {
-			console.warn('No API keys found')
 			return []
 		}
 	}
@@ -70,13 +69,13 @@ const processedImageUrl = artist.imageUrl || ''
 			const result = await response.json()
 			return result.response?.image_url || null
 		} catch (error) {
-			console.error('API request failed:', error)
 			return null
 		}
 	}
 
 	// Función principal optimizada para remover el fondo
 	async function removeBackground(imageUrl: string): Promise<string> {
+		console.log("Removing background from", imageUrl)
 		// Verificar cache
 		if (bgRemovalCache.has(imageUrl)) {
 			return bgRemovalCache.get(imageUrl)

@@ -13,7 +13,6 @@ let playlistInfo;
 try {
   const cached = Astro.request.headers.get('x-playlist-cache');
   if (cached) {
-    console.log('Using cached playlist', cached);
     playlistInfo = JSON.parse(cached);
   } else {
     playlistInfo = await getPlaylistInfo(PLAYLIST_ID);
@@ -22,7 +21,6 @@ try {
     Astro.response.headers.set('x-playlist-cache', JSON.stringify(playlistInfo));
   }
 } catch (e: any) {
-  console.error('Error fetching playlist:', e);
 }
 
 if (playlistInfo) {
