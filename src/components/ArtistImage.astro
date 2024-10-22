@@ -1,6 +1,5 @@
 ---
 import { Image } from 'astro:assets'
-// import { BackgroundRemovalService } from '@/services/bgRemoval'
 
 interface Props {
 	artist: {
@@ -12,18 +11,109 @@ interface Props {
 
 const { artist, className = '' } = Astro.props
 
-const processedImageUrl = artist.imageUrl || '';
-
-// const backgroundService = BackgroundRemovalService.getInstance();
-// const processedImageUrl = await backgroundService.removeBackground(artist.imageUrl);
+// Utilizar una URL procesada desde el servidor si está disponible
+const processedImageUrl = artist.imageUrl || ''
 ---
 
 <Image
+	id='top-artist-image'
 	src={processedImageUrl}
 	alt={`Top Artist: ${artist.name}`}
 	width={200}
 	height={150}
-	loading={'eager'}
+	loading='eager'
 	class={`absolute bottom-0 right-5 h-[11rem] ${className}`}
 	transition:name={`artist-image-${artist.name.toLowerCase()}`}
 />
+
+<script>
+	// Constantes movidas fuera del script para mejor mantenibilidad
+	const API_URL = 'https://background-removal.p.rapidapi.com/remove'
+	const API_HOST = 'background-removal.p.rapidapi.com'
+	// Cache para almacenar resultados de eliminación de fondo
+	const bgRemovalCache = new Map()
+
+	// Función para obtener las claves API del entorno
+	const getApiKeys = () => {
+		try {
+			return import.meta.env.PUBLIC_API_BG_KEYS?.split(',') || []
+		} catch {
+			console.warn('No API keys found')
+			return []
+		}
+	}
+
+	// Función para realizar la petición a la API con retry
+	async function makeApiRequest(
+		imageUrl: string,
+		apiKey: string,
+	): Promise<string | null> {
+		const options = {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				'X-RapidAPI-Key': apiKey,
+				'X-RapidAPI-Host': API_HOST,
+			},
+			body: new URLSearchParams({
+				image_url: imageUrl,
+				output_format: 'url',
+				to_remove: 'background',
+			}),
+		}
+
+		try {
+			const response = await fetch(API_URL, options)
+			if (!response.ok)
+				throw new Error(`HTTP error! status: ${response.status}`)
+
+			const result = await response.json()
+			return result.response?.image_url || null
+		} catch (error) {
+			console.error('API request failed:', error)
+			return null
+		}
+	}
+
+	// Función principal optimizada para remover el fondo
+	async function removeBackground(imageUrl: string): Promise<string> {
+		// Verificar cache
+		if (bgRemovalCache.has(imageUrl)) {
+			return bgRemovalCache.get(imageUrl)
+		}
+
+		const apiKeys = getApiKeys()
+		if (!apiKeys.length) return imageUrl
+
+		for (const apiKey of apiKeys) {
+			const result = await makeApiRequest(imageUrl, apiKey)
+			if (result) {
+				// Guardar en cache
+				bgRemovalCache.set(imageUrl, result)
+				return result
+			}
+		}
+
+		return imageUrl
+	}
+
+	// Inicialización con manejo de errores
+	async function initializeImage() {
+		const artistImage = document.getElementById(
+			'top-artist-image',
+		) as HTMLImageElement
+		if (!artistImage) return
+
+		try {
+			const processedUrl = await removeBackground(artistImage.src)
+			if (processedUrl !== artistImage.src) {
+				artistImage.src = processedUrl
+			}
+		} catch (error) {
+			console.error('Failed to process image:', error)
+		}
+	}
+
+	// Ejecutar la inicialización cuando el DOM esté listo
+	document.addEventListener('DOMContentLoaded', initializeImage)
+</script>
