@@ -5,7 +5,7 @@ export const POST: APIRoute = async ({ request, redirect }) => {
   const playlistUrl = formData.get('playlistUrl') as string
 
   // Extraer el ID de la playlist de la URL
-  const extractPlaylistId = (url: string) => {
+  const extractPlaylistId = (url: string): string | null => {
     try {
       // Manejar ambos formatos:
       // https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
