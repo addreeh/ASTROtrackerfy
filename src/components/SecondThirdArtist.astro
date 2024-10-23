@@ -1,10 +1,10 @@
 ---
 import { Image } from 'astro:assets'
 
-const { artist, number } = Astro.props
+const { artist, number, playlistId } = Astro.props
 ---
 
-<a href={`/${artist.name.toLowerCase()}`}>
+<a href={`/playlist/${playlistId}/artist/${artist.name.toLowerCase()}`}>
 	<article class='flex flex-col items-center justify-between gap-3'>
 		<div
 			class='inline-block'

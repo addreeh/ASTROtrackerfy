@@ -1,24 +1,30 @@
 ---
 import TopArtist from '@/components/TopArtist.astro'
+import Artist from '@/components/Artist.astro'
 import SecondThirdArtist from './SecondThirdArtist.astro'
-import Artist from './Artist.astro'
 import type { ArtistInfo } from '@/env'
-// import Vibrant from 'node-vibrant'
+
 const { playlistInfo } = Astro.props
+const { id } = Astro.params
 ---
 
 <main
 	class='container mx-auto flex h-full min-h-screen max-w-md flex-col gap-5 p-7'
 >
-	<TopArtist artist={playlistInfo.artists[0]} />
+	<TopArtist
+		artist={playlistInfo.artists[0]}
+		playlistId={id}
+	/>
 	<section class='flex flex-row justify-around'>
 		<SecondThirdArtist
 			artist={playlistInfo.artists[1]}
 			number={'Second'}
+			playlistId={id}
 		/>
 		<SecondThirdArtist
 			artist={playlistInfo.artists[2]}
 			number={'Third'}
+			playlistId={id}
 		/>
 	</section>
 	<section
@@ -31,9 +37,12 @@ const { playlistInfo } = Astro.props
 		</div>
 		<article class='flex flex-col gap-5'>
 			{
-				playlistInfo.artists
-					.slice(3)
-					.map((artist: ArtistInfo) => <Artist artist={artist} />)
+				playlistInfo.artists.slice(3).map((artist: ArtistInfo) => (
+					<Artist
+						artist={artist}
+						playlistId={id}
+					/>
+				))
 			}
 		</article>
 	</section>

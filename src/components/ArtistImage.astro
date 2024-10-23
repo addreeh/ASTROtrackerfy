@@ -1,5 +1,8 @@
 ---
 import { Image } from 'astro:assets'
+import fs from 'fs/promises'
+import path from 'path'
+import crypto from 'crypto'
 
 interface Props {
 	artist: {
@@ -11,10 +14,160 @@ interface Props {
 
 const { artist, className = '' } = Astro.props
 
-// Utilizar una URL procesada desde el servidor si está disponible
-const processedImageUrl = artist.imageUrl || ''
+const apiKeys = import.meta.env.PUBLIC_API_BG_KEYS?.split(',') || []
+
+// Cache configuration
+const CACHE_DIR = path.join(process.cwd(), '.cache')
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+
+async function ensureCacheDir() {
+	try {
+		// Check if directory exists first
+		try {
+			await fs.access(CACHE_DIR)
+		} catch {
+			await fs.mkdir(CACHE_DIR, { recursive: true })
+		}
+	} catch (error) {
+		console.error('Error creating cache directory:', error)
+	}
+}
+
+function getCacheKey(imageUrl: string): string {
+	return crypto.createHash('md5').update(imageUrl).digest('hex')
+}
+
+async function getCachedImage(cacheKey: string): Promise<string | null> {
+	try {
+		const cacheFilePath = path.join(CACHE_DIR, `${cacheKey}.json`)
+
+		// Check if file exists first
+		try {
+			await fs.access(cacheFilePath)
+		} catch {
+			return null
+		}
+
+		const cacheData = (await fs.readFile(cacheFilePath)).toString('utf-8')
+		const { url, timestamp } = JSON.parse(cacheData)
+
+		if (Date.now() - timestamp < CACHE_DURATION) {
+			return url
+		}
+
+		// Cache expired, delete it
+		try {
+			await fs.unlink(cacheFilePath)
+		} catch {
+			// Ignore deletion errors
+		}
+		return null
+	} catch (error) {
+		return null
+	}
+}
+
+async function setCachedImage(cacheKey: string, imageUrl: string) {
+	try {
+		const cacheFilePath = path.join(CACHE_DIR, `${cacheKey}.json`)
+		const cacheData = {
+			url: imageUrl,
+			timestamp: Date.now(),
+		}
+		await fs.writeFile(cacheFilePath, JSON.stringify(cacheData))
+	} catch (error) {
+		console.error('Error writing to cache:', error)
+	}
+}
+
+async function downloadAndValidateImage(url: string): Promise<boolean> {
+	try {
+		const response = await fetch(url, { method: 'HEAD' })
+		const contentType = response.headers.get('content-type')
+		return !!contentType && contentType.startsWith('image/')
+	} catch {
+		return false
+	}
+}
+
+async function removeBackground(imageToRemove: string): Promise<string> {
+	// Ensure cache directory exists
+	await ensureCacheDir()
+
+	// Check cache first
+	const cacheKey = getCacheKey(imageToRemove)
+	const cachedUrl = await getCachedImage(cacheKey)
+	if (cachedUrl) {
+		// Validate if cached image still exists
+		if (await downloadAndValidateImage(cachedUrl)) {
+			return cachedUrl
+		}
+	}
+
+	const url = 'https://background-removal.p.rapidapi.com/remove'
+	let imageUrl = imageToRemove
+
+	for (const apiKey of apiKeys) {
+		const options = {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				'X-RapidAPI-Key': apiKey,
+				'X-RapidAPI-Host': 'background-removal.p.rapidapi.com',
+			},
+			body: new URLSearchParams({
+				image_url: imageToRemove,
+				output_format: 'url',
+				to_remove: 'background',
+			}),
+		}
+
+		try {
+			const response = await fetch(url, options)
+			if (!response.ok) continue
+
+			const result = await response.json()
+
+			if (!result.error && result.response?.image_url) {
+				imageUrl = result.response.image_url
+				// Cache the successful result
+				await setCachedImage(cacheKey, imageUrl)
+				break
+			}
+		} catch (error) {
+			console.error('API error:', error)
+			// Continue to next API key
+		}
+	}
+
+	return imageUrl
+}
+
+// Process the image URL with retries and timeout
+const processImage = async () => {
+	const timeout = new Promise<string>((_, reject) =>
+		setTimeout(() => reject(new Error('Processing timeout')), 10000),
+	)
+
+	try {
+		const result = await Promise.race([
+			removeBackground(artist.imageUrl),
+			timeout,
+		])
+		return result
+	} catch (error) {
+		console.error('Image processing failed:', error)
+		return artist.imageUrl
+	}
+}
+
+// const processedImageUrl = await processImage();
+
+// const preloadImageUrl = processedImageUrl || artist.imageUrl;
+const processedImageUrl = artist.imageUrl
 ---
 
+<!-- <link rel="preload" href={preloadImageUrl} as="image"> -->
 <Image
 	id='top-artist-image'
 	src={processedImageUrl}
@@ -25,96 +178,3 @@ const processedImageUrl = artist.imageUrl || ''
 	class={`absolute bottom-0 right-5 h-[11rem] ${className}`}
 	transition:name={`artist-image-${artist.name.toLowerCase()}`}
 />
-
-<script>
-	// Constantes movidas fuera del script para mejor mantenibilidad
-	const API_URL = 'https://background-removal.p.rapidapi.com/remove'
-	const API_HOST = 'background-removal.p.rapidapi.com'
-	// Cache para almacenar resultados de eliminación de fondo
-	const bgRemovalCache = new Map()
-
-	// Función para obtener las claves API del entorno
-	const getApiKeys = () => {
-		try {
-			return import.meta.env.PUBLIC_API_BG_KEYS?.split(',') || []
-		} catch {
-			return []
-		}
-	}
-
-	// Función para realizar la petición a la API con retry
-	async function makeApiRequest(
-		imageUrl: string,
-		apiKey: string,
-	): Promise<string | null> {
-		const options = {
-			method: 'POST',
-			headers: {
-				'content-type': 'application/x-www-form-urlencoded',
-				'X-RapidAPI-Key': apiKey,
-				'X-RapidAPI-Host': API_HOST,
-			},
-			body: new URLSearchParams({
-				image_url: imageUrl,
-				output_format: 'url',
-				to_remove: 'background',
-			}),
-		}
-
-		try {
-			const response = await fetch(API_URL, options)
-			if (!response.ok)
-				throw new Error(`HTTP error! status: ${response.status}`)
-
-			const result = await response.json()
-			return result.response?.image_url || null
-		} catch (error) {
-			return null
-		}
-	}
-
-	// Función principal optimizada para remover el fondo
-	async function removeBackground(imageUrl: string): Promise<string> {
-		console.log("Removing background from", imageUrl)
-		// Verificar cache
-		if (bgRemovalCache.has(imageUrl)) {
-			return bgRemovalCache.get(imageUrl)
-		}
-
-		const apiKeys = getApiKeys()
-		console.log('API KEYS', apiKeys)
-		if (!apiKeys.length) return imageUrl
-
-		for (const apiKey of apiKeys) {
-			const result = await makeApiRequest(imageUrl, apiKey)
-			if (result) {
-				// Guardar en cache
-				bgRemovalCache.set(imageUrl, result)
-				return result
-			}
-		}
-
-		console.log('Image', imageUrl, 'could not be processed')
-		return imageUrl
-	}
-
-	// Inicialización con manejo de errores
-	async function initializeImage() {
-		const artistImage = document.getElementById(
-			'top-artist-image',
-		) as HTMLImageElement
-		if (!artistImage) return
-
-		try {
-			const processedUrl = await removeBackground(artistImage.src)
-			if (processedUrl !== artistImage.src) {
-				artistImage.src = processedUrl
-			}
-		} catch (error) {
-			console.error('Failed to process image:', error)
-		}
-	}
-
-	// Ejecutar la inicialización cuando el DOM esté listo
-	document.addEventListener('DOMContentLoaded', initializeImage)
-</script>

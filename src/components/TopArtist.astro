@@ -2,38 +2,38 @@
 import { Image } from 'astro:assets'
 import ArtistImage from './ArtistImage.astro'
 
-const { artist } = Astro.props
+const { artist, playlistId } = Astro.props
 ---
 
-<a href={`/${artist.name.toLowerCase()}`}>
-  <section
-    class='relative z-20 flex h-28 w-full cursor-pointer flex-row items-center justify-between rounded-3xl bg-[#42C83C] px-7 text-xs transition-transform hover:scale-105'
-  >
-    <article class='font-bold text-[#FBFBFB]'>
-      <p class='text-[0.625rem]'>Top Artist</p>
-      <p
-        class='text-xl'
-        transition:name={`artist-name-${artist.name.toLowerCase()}`}
-      >
-        {artist.name}
-      </p>
-      <p
-        class='text-xs'
-        transition:name={`artist-stats-${artist.name.toLowerCase()}`}
-      >
-        {artist.percentage.toFixed(2)}% | {artist.contentCount} songs
-      </p>
-    </article>
+<a href={`/playlist/${playlistId}/artist/${artist.name.toLowerCase()}`}>
+	<section
+		class='relative z-20 flex h-28 w-full cursor-pointer flex-row items-center justify-between rounded-3xl bg-[#42C83C] px-7 text-xs transition-transform hover:scale-105'
+	>
+		<article class='font-bold text-[#FBFBFB]'>
+			<p class='text-[0.625rem]'>Top Artist</p>
+			<p
+				class='text-xl'
+				transition:name={`artist-name-${artist.name.toLowerCase()}`}
+			>
+				{artist.name}
+			</p>
+			<p
+				class='text-xs'
+				transition:name={`artist-stats-${artist.name.toLowerCase()}`}
+			>
+				{artist.percentage.toFixed(2)}% | {artist.contentCount} songs
+			</p>
+		</article>
 
-    <ArtistImage artist={artist} />
+		<ArtistImage artist={artist} />
 
-    <Image
-      src={'/Union.png'}
-      alt='Top Artist'
-      width={100}
-      height={100}
-      loading={'eager'}
-      class='absolute right-0 top-0 h-32 w-auto'
-    />
-  </section>
+		<Image
+			src={'/Union.png'}
+			alt='Top Artist'
+			width={100}
+			height={100}
+			loading={'eager'}
+			class='absolute right-0 top-0 h-32 w-auto'
+		/>
+	</section>
 </a>

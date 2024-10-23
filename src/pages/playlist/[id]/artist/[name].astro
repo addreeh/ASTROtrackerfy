@@ -1,26 +1,48 @@
 ---
 import { Image } from 'astro:assets'
-import Layout from '@/layouts/Layout.astro'
-import { playlist } from '@/stores/playlist'
-import type { ArtistInfo, PlaylistInfo } from '@/env'
-import PlaySong from '@/components/PlaySong'
+import Layout from '../../../../layouts/Layout.astro'
+import { playlist } from '../../../../stores/playlist'
+import type { ArtistInfo, PlaylistInfo } from '../../../..//env'
+import PlaySong from '../../../../components/PlaySong'
 import Vibrant from 'node-vibrant'
 
-const { name } = Astro.params
-const playlistInfo = playlist.get() as PlaylistInfo
+const { id, name } = Astro.params
 
-let artist
-if (playlistInfo)
-	artist = playlistInfo.artists.find(
-		(artist: ArtistInfo) => artist.name.toLowerCase() === name,
-	)
-else return Astro.redirect('/')
+// Intenta obtener la información del store primero
+let playlistInfo = playlist.get() as PlaylistInfo
 
+// Si no hay información en el store, cárgala
+if (!playlistInfo && id) {
+	try {
+		const { getPlaylistInfo } = await import('../../../../lib/spotify')
+		playlistInfo = await getPlaylistInfo(id)
+		playlist.set(playlistInfo)
+	} catch (error) {
+		console.error('Error loading playlist:', error)
+		return Astro.redirect(`/playlist/${id}?error=load-failed`)
+	}
+}
+
+// Busca el artista en la información de la playlist
+const artist = playlistInfo?.artists?.find(
+	(artist: ArtistInfo) => artist.name.toLowerCase() === name?.toLowerCase(),
+)
+
+if (!artist) {
+	return Astro.redirect(`/playlist/${id}?error=artist-not-found`)
+}
+
+// Obtiene el color vibrante de la imagen del artista
 let vibrantColor
-if (artist && artist.imageUrl) {
-	const vibrant = new Vibrant(artist.imageUrl)
-	vibrantColor = await vibrant.getPalette()
-		.then((palette) => palette.Vibrant?.hex)
+if (artist?.imageUrl) {
+	try {
+		const vibrant = new Vibrant(artist.imageUrl)
+		vibrantColor = await vibrant
+			.getPalette()
+			.then(palette => palette.Vibrant?.hex)
+	} catch (error) {
+		console.error('Error getting vibrant color:', error)
+	}
 }
 ---
 
@@ -28,10 +50,10 @@ if (artist && artist.imageUrl) {
 	<div class='flex h-screen flex-col gap-4'>
 		<header
 			class='flex flex-col justify-items-center gap-4 rounded-b-[3.75rem] pb-4'
-      style={{ backgroundColor: vibrantColor }}
+			style={{ backgroundColor: vibrantColor }}
 		>
 			<Image
-				src={artist?.imageUrl || '/billie.png'}
+				src={artist?.imageUrl || '/avatar.png'}
 				alt={artist?.name || 'Default Artist'}
 				width={200}
 				height={200}
@@ -58,9 +80,7 @@ if (artist && artist.imageUrl) {
 						class='flex flex-col items-center justify-center text-sm text-[#D3D3D3]'
 					>
 						<p class='text-xs'>Followers</p>
-						<p class='font-bold'>
-							{artist?.followers?.toString()}
-						</p>
+						<p class='font-bold'>{artist?.followers?.toString()}</p>
 					</div>
 				</article>
 			</section>
@@ -72,10 +92,8 @@ if (artist && artist.imageUrl) {
 				class='flex flex-col gap-3 overflow-y-auto px-4'
 			>
 				{
-					artist?.content.map((song) => (
-						<div
-							class='flex cursor-pointer flex-row items-center justify-between rounded-xl py-1 transition-all duration-200 hover:scale-105'
-						>
+					artist?.content.map(song => (
+						<div class='flex cursor-pointer flex-row items-center justify-between rounded-xl py-1 transition-all duration-200 hover:scale-105'>
 							<div class='flex flex-row gap-5'>
 								<Image
 									src={song.imageUrl}
@@ -85,7 +103,6 @@ if (artist && artist.imageUrl) {
 									loading={'lazy'}
 									class='rounded-xl'
 								/>
-
 								<div class='flex flex-col justify-center gap-1 text-[#E3E3E3]'>
 									<p class='max-w-44 truncate text-ellipsis text-base font-bold'>
 										{song.name}
@@ -109,11 +126,6 @@ if (artist && artist.imageUrl) {
 	</div>
 </Layout>
 
-<!-- <style>
-    .flex.cursor-pointer:hover {
-        box-shadow: 0 0 15px var(--vibrant-color);
-    }
-</style> -->
 <style>
 	#songs::-webkit-scrollbar {
 		display: none;

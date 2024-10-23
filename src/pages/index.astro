@@ -1,58 +1,89 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { Image } from 'astro:assets';
-import PlaylistViewer from '../components/PlaylistViewer.astro';
-import { getPlaylistInfo } from '../lib/spotify';
+import Layout from '../layouts/Layout.astro'
+import { Image } from 'astro:assets'
 
-const PLAYLIST_ID = import.meta.env.PLAYLIST_ID || '0UNaot0tAdf4Oqa8L1hK88';
+const errorMessage = Astro.url.searchParams.get('error')
 
-const CACHE_TIME = 60 * 60;
-
-let playlistInfo;
-
-try {
-  const cached = Astro.request.headers.get('x-playlist-cache');
-  if (cached) {
-    playlistInfo = JSON.parse(cached);
-  } else {
-    playlistInfo = await getPlaylistInfo(PLAYLIST_ID);
-
-    Astro.response.headers.set('Cache-Control', `max-age=${CACHE_TIME}`);
-    Astro.response.headers.set('x-playlist-cache', JSON.stringify(playlistInfo));
-  }
-} catch (e: any) {
-}
-
-if (playlistInfo) {
-  const { playlist } = await import('@/stores/playlist');
-  playlist.set(playlistInfo);
+function getErrorText(error: string | null) {
+	switch (error) {
+		case 'invalid-url':
+			return 'Please enter a valid Spotify playlist URL'
+		case 'invalid-playlist':
+			return 'Could not find the specified playlist'
+		case 'fetch-failed':
+			return 'Failed to load playlist data'
+		default:
+			return ''
+	}
 }
 ---
 
-<!-- ---
-import Layout from '../layouts/Layout.astro'
-import { Image } from 'astro:assets'
-import { getPlaylistInfo } from '../lib/spotify'
-import PlaylistViewer from '../components/PlaylistViewer.astro'
-
-// const DEFAULT_PLAYLIST_ID = '0UNaot0tAdf4Oqa8L1hK88'
-// import playlistInfo from '../playlistInfo.json'
-let playlistInfo
-playlistInfo = await getPlaylistInfo('0UNaot0tAdf4Oqa8L1hK88')
-import { playlist } from '@/stores/playlist'
-playlist.set(playlistInfo)
---- -->
 <Layout title='Trackerfy'>
-	<header
-		class='relative z-10 mx-auto flex max-w-md items-center justify-center bg-[#1C1B1B] pt-7'
-	>
-		<Image
-			src='/spotify-logo.png'
-			alt='Spotify Logo'
-			width={100}
-			height={30}
-			loading={'eager'}
-		/>
-	</header>
-	<PlaylistViewer playlistInfo={playlistInfo} />
+	<div id="body" class='relative min-h-screen bg-[#1C1B1B]'>
+		<main class='relative z-10 flex flex-col px-4 h-full items-center justify-center min-h-screen pt-60'>
+			<div class='mb-8 flex flex-col items-center gap-4'>
+				<div class='flex items-center gap-2'>
+					<Image
+						src='/logo.webp'
+						alt='Trackerfy Logo'
+						width={280}
+						height={100}
+            class="aspect-[280/100] object-contain"
+					/>
+				</div>
+				<p class='text-center text-lg font-normal text-gray-200'>
+					Analyzes your Spotify public playlists, providing a breakdown of
+					artist distribution.
+				</p>
+			</div>
+			<div class='w-full max-w-md'>
+				<form
+					action='/api/validate-playlist'
+					method='POST'
+					class='relative'
+				>
+					<input
+						type='text'
+						name='playlistUrl'
+						placeholder='Playlist URL'
+						class='w-full rounded-full border border-gray-700 bg-[#2C2C2C] px-4 py-3 pr-12 text-white placeholder-gray-500 focus:border-[#42C83C] focus:outline-none'
+						required
+					/>
+					<button
+						type='submit'
+						class='absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[#42C83C] text-white transition-colors hover:bg-[#3AB52E]'
+						aria-label='Submit'
+					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							class='h-5 w-5'
+							viewBox='0 0 24 24'
+							fill='none'
+							stroke='currentColor'
+							stroke-width='2'
+						>
+							<path d='M5 12h14M12 5l7 7-7 7'></path>
+						</svg>
+					</button>
+				</form>
+
+				{
+					errorMessage && (
+						<p class='mt-2 pl-4 text-sm text-red-400'>
+							{getErrorText(errorMessage)}
+						</p>
+					)
+				}
+			</div>
+		</main>
+	</div>
 </Layout>
+
+<style>
+	.min-h-screen {
+		background-image: url('/artists.webp');
+		background-size: contain;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
+</style>

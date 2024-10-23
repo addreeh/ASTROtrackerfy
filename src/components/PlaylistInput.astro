@@ -1,0 +1,61 @@
+---
+const errorMessage = Astro.url.searchParams.get('error')
+
+function getErrorText(error: string | null) {
+	switch (error) {
+		case 'invalid-url':
+			return 'Please enter a valid Spotify playlist URL'
+		case 'invalid-playlist':
+			return 'Could not find the specified playlist'
+		case 'fetch-failed':
+			return 'Failed to load playlist data'
+		default:
+			return ''
+	}
+}
+---
+
+<div class='mx-auto mt-8 w-full max-w-md'>
+	<form
+		action='/api/validate-playlist'
+		method='POST'
+		class='flex flex-col gap-4 rounded-xl bg-[#2C2C2C] p-6'
+	>
+		<header class='mb-4 text-center'>
+			<h1 class='mb-2 text-xl font-bold text-white'>
+				Enter your Spotify playlist
+			</h1>
+			<p class='text-sm text-[#D3D3D3]'>
+				Paste your Spotify playlist URL to analyze its artists and tracks
+			</p>
+		</header>
+
+		<div class='flex flex-col gap-2'>
+			<input
+				type='text'
+				name='playlistUrl'
+				placeholder='https://open.spotify.com/playlist/...'
+				class='w-full rounded-lg border border-[#42C83C] bg-[#1C1B1B] px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-[#42C83C]'
+				required
+			/>
+			{
+				errorMessage && (
+					<p class='text-sm text-red-400'>{getErrorText(errorMessage)}</p>
+				)
+			}
+		</div>
+
+		<button
+			type='submit'
+			class='w-full rounded-lg bg-[#42C83C] px-4 py-2 font-bold text-white transition-colors hover:bg-[#3AB52E]'
+		>
+			Analyze Playlist
+		</button>
+
+		<div class='mt-4 text-center'>
+			<p class='text-sm text-[#D3D3D3]'>
+				Example: https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+			</p>
+		</div>
+	</form>
+</div>

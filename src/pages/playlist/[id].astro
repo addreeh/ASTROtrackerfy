@@ -1,0 +1,48 @@
+---
+import Layout from '../../layouts/Layout.astro'
+import { Image } from 'astro:assets'
+import PlaylistViewer from '../../components/PlaylistViewer.astro'
+import { getPlaylistInfo } from '../../lib/spotify'
+
+const { id } = Astro.params
+
+if (!id) {
+	return Astro.redirect('/')
+}
+
+const CACHE_TIME = 60 * 60
+
+let playlistInfo
+
+try {
+	const cached = Astro.request.headers.get('x-playlist-cache')
+	if (cached) {
+		playlistInfo = JSON.parse(cached)
+	} else {
+		playlistInfo = await getPlaylistInfo(id)
+
+		Astro.response.headers.set('Cache-Control', `max-age=${CACHE_TIME}`)
+		Astro.response.headers.set('x-playlist-cache', JSON.stringify(playlistInfo))
+	}
+} catch (e: any) {}
+
+if (playlistInfo) {
+	const { playlist } = await import('@/stores/playlist')
+	playlist.set(playlistInfo)
+}
+---
+
+<Layout title='Trackerfy'>
+	<header
+		class='relative z-10 mx-auto flex max-w-md items-center justify-center bg-[#1C1B1B] pt-7'
+	>
+		<Image
+			src='/spotify-logo.png'
+			alt='Spotify Logo'
+			width={100}
+			height={30}
+			loading={'eager'}
+		/>
+	</header>
+	<PlaylistViewer playlistInfo={playlistInfo} />
+</Layout>
