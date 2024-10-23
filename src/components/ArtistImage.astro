@@ -16,70 +16,6 @@ const { artist, className = '' } = Astro.props
 
 const apiKeys = import.meta.env.PUBLIC_API_BG_KEYS?.split(',') || []
 
-// Cache configuration
-const CACHE_DIR = path.join(process.cwd(), '.cache')
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
-
-async function ensureCacheDir() {
-	try {
-		// Check if directory exists first
-		try {
-			await fs.access(CACHE_DIR)
-		} catch {
-			await fs.mkdir(CACHE_DIR, { recursive: true })
-		}
-	} catch (error) {
-		console.error('Error creating cache directory:', error)
-	}
-}
-
-function getCacheKey(imageUrl: string): string {
-	return crypto.createHash('md5').update(imageUrl).digest('hex')
-}
-
-async function getCachedImage(cacheKey: string): Promise<string | null> {
-	try {
-		const cacheFilePath = path.join(CACHE_DIR, `${cacheKey}.json`)
-
-		// Check if file exists first
-		try {
-			await fs.access(cacheFilePath)
-		} catch {
-			return null
-		}
-
-		const cacheData = (await fs.readFile(cacheFilePath)).toString('utf-8')
-		const { url, timestamp } = JSON.parse(cacheData)
-
-		if (Date.now() - timestamp < CACHE_DURATION) {
-			return url
-		}
-
-		// Cache expired, delete it
-		try {
-			await fs.unlink(cacheFilePath)
-		} catch {
-			// Ignore deletion errors
-		}
-		return null
-	} catch (error) {
-		return null
-	}
-}
-
-async function setCachedImage(cacheKey: string, imageUrl: string) {
-	try {
-		const cacheFilePath = path.join(CACHE_DIR, `${cacheKey}.json`)
-		const cacheData = {
-			url: imageUrl,
-			timestamp: Date.now(),
-		}
-		await fs.writeFile(cacheFilePath, JSON.stringify(cacheData))
-	} catch (error) {
-		console.error('Error writing to cache:', error)
-	}
-}
-
 async function downloadAndValidateImage(url: string): Promise<boolean> {
 	try {
 		const response = await fetch(url, { method: 'HEAD' })
@@ -91,19 +27,6 @@ async function downloadAndValidateImage(url: string): Promise<boolean> {
 }
 
 async function removeBackground(imageToRemove: string): Promise<string> {
-	// Ensure cache directory exists
-	await ensureCacheDir()
-
-	// Check cache first
-	const cacheKey = getCacheKey(imageToRemove)
-	const cachedUrl = await getCachedImage(cacheKey)
-	if (cachedUrl) {
-		// Validate if cached image still exists
-		if (await downloadAndValidateImage(cachedUrl)) {
-			return cachedUrl
-		}
-	}
-
 	const url = 'https://background-removal.p.rapidapi.com/remove'
 	let imageUrl = imageToRemove
 
@@ -130,8 +53,6 @@ async function removeBackground(imageToRemove: string): Promise<string> {
 
 			if (!result.error && result.response?.image_url) {
 				imageUrl = result.response.image_url
-				// Cache the successful result
-				await setCachedImage(cacheKey, imageUrl)
 				break
 			}
 		} catch (error) {
