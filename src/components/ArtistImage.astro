@@ -82,13 +82,13 @@ const processImage = async () => {
 	}
 }
 
-// const processedImageUrl = await processImage();
+const processedImageUrl = await processImage();
 
-// const preloadImageUrl = processedImageUrl || artist.imageUrl;
-const processedImageUrl = artist.imageUrl
+const preloadImageUrl = processedImageUrl || artist.imageUrl;
+// const processedImageUrl = artist.imageUrl
 ---
 
-<!-- <link rel="preload" href={preloadImageUrl} as="image"> -->
+<link rel="preload" href={preloadImageUrl} as="image">
 <Image
 	id='top-artist-image'
 	src={processedImageUrl}
