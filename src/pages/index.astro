@@ -20,7 +20,7 @@ function getErrorText(error: string | null) {
 
 <Layout title='Trackerfy'>
 	<div id="body" class='relative min-h-screen bg-[#1C1B1B]'>
-		<main class='relative z-10 flex flex-col px-4 h-full items-center justify-center min-h-screen pt-60'>
+		<main class='relative z-10 flex flex-col px-4 h-full items-center justify-center min-h-screen pt-60 sm:pt-40 md:pt-52'>
 			<div class='mb-8 flex flex-col items-center gap-4'>
 				<div class='flex items-center gap-2'>
 					<Image
@@ -28,41 +28,63 @@ function getErrorText(error: string | null) {
 						alt='Trackerfy Logo'
 						width={280}
 						height={100}
-            class="aspect-[280/100] object-contain"
+            class="aspect-[280/100] object-contain w-[200px] sm:w-[240px] md:w-[280px]"
 					/>
 				</div>
-				<p class='text-center text-lg font-normal text-gray-200'>
+				<p class='text-center text-base sm:text-lg font-normal text-gray-200 max-w-sm'>
 					Analyzes your Spotify public playlists, providing a breakdown of
 					artist distribution.
 				</p>
 			</div>
-			<div class='w-full max-w-md'>
+			<div class='w-full max-w-md px-4 sm:px-0'>
 				<form
 					action='/api/validate-playlist'
 					method='POST'
 					class='relative'
+					id="playlistForm"
 				>
 					<input
 						type='text'
 						name='playlistUrl'
 						placeholder='Playlist URL'
-						class='w-full rounded-full border border-gray-700 bg-[#2C2C2C] px-4 py-3 pr-12 text-white placeholder-gray-500 focus:border-[#42C83C] focus:outline-none'
+						class='w-full rounded-full border border-gray-700 bg-[#2C2C2C] px-4 py-3 pr-12 text-sm sm:text-base text-white placeholder-gray-500 focus:border-[#42C83C] focus:outline-none'
 						required
 					/>
 					<button
 						type='submit'
-						class='absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[#42C83C] text-white transition-colors hover:bg-[#3AB52E]'
+						class='absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[#42C83C] text-white transition-colors hover:bg-[#3AB52E] disabled:bg-[#2C2C2C] disabled:cursor-not-allowed'
 						aria-label='Submit'
+						id="submitButton"
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
-							class='h-5 w-5'
+							class='h-5 w-5 submit-icon'
 							viewBox='0 0 24 24'
 							fill='none'
 							stroke='currentColor'
 							stroke-width='2'
 						>
 							<path d='M5 12h14M12 5l7 7-7 7'></path>
+						</svg>
+						<svg
+							class="h-5 w-5 loading-icon hidden animate-spin"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					</button>
 				</form>
@@ -86,4 +108,27 @@ function getErrorText(error: string | null) {
 		background-position: center;
 		background-repeat: no-repeat;
 	}
+
+	@media (max-width: 640px) {
+		.min-h-screen {
+			background-size: cover;
+		}
+	}
 </style>
+
+<script>
+	const form = document.getElementById('playlistForm');
+	const submitButton = document.getElementById('submitButton');
+	const submitIcon = document.querySelector('.submit-icon');
+	const loadingIcon = document.querySelector('.loading-icon');
+
+	if (form && submitButton && submitIcon && loadingIcon) {
+		form.addEventListener('submit', (e) => {
+			if (submitButton instanceof HTMLButtonElement) {
+				submitButton.disabled = true;
+			}
+			submitIcon.classList.add('hidden');
+			loadingIcon.classList.remove('hidden');
+		});
+	}
+</script>
