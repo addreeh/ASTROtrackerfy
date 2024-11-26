@@ -1,8 +1,5 @@
 ---
 import { Image } from 'astro:assets'
-import fs from 'fs/promises'
-import path from 'path'
-import crypto from 'crypto'
 
 interface Props {
 	artist: {
@@ -84,8 +81,8 @@ const processImage = async () => {
 
 const processedImageUrl = await processImage();
 
-const preloadImageUrl = processedImageUrl || artist.imageUrl;
 // const processedImageUrl = artist.imageUrl
+const preloadImageUrl = processedImageUrl || artist.imageUrl;
 ---
 
 <link rel="preload" href={preloadImageUrl} as="image">
