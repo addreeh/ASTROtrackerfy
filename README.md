@@ -1,4 +1,4 @@
-# 🎵 Spotify Playlist Analyzer
+# 🎵 Trackerfy
 
 A web application that connects with Spotify's API to analyze your playlists and show the percentage distribution of songs by artist. Built with modern web technologies for a smooth user experience.
 
